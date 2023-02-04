@@ -1,74 +1,117 @@
-from collections import defaultdict
-import math
-addset=[]
-strength=defaultdict(lambda: 5)
-def add_func(in2,in3):
-    if(in2=="COMPUTER" or in2=="REPEATER"):
-        if([in2,in3] not in addset):
-            addset.append([in2,in3])
-            return "Successfully added "+str(in3)+"."
+class Device:
+    def __init__(self, name, device_type, strength=5):
+        self.name = name
+        self.device_type = device_type
+        self.strength = strength
+        self.connections = []
+
+    def __str__(self):
+        return f"{self.device_type} ({self.name})"
+
+class Network:
+    def __init__(self):
+        self.devices = {}
+
+    def add_device(self, device):
+        if device.name in self.devices:
+            print(f"Error: That name already exists.")
         else:
-            return "Error: That name already exists."
-    else:
-        return "Error: Invalid command syntax."
+            self.devices[device.name] = device
+            print(f"Successfully added {device.name}.")
 
-def set_device_strength(in2,in3):
-    if not (in3.isnumeric()):
-        return "Error: Invalid command syntax."
-    else:
-        if int(in3)<0:return "Error: Invalid command syntax."
+    def connect_devices(self, device1, device2):
+        if device1.name == device2.name:
+            print(f"Error: Cannot connect device to itself.")
+        elif device2.name not in self.devices:
+            print(f"Error: Node not found.")
+        elif device2 in device1.connections:
+            print(f"Error: Devices are already connected.")
         else:
-            strength[in2]=in3
-            return "Successfully defined strength."
+            device1.connections.append(device2)
+            device2.connections.append(device1)
+            print(f"Successfully connected.")
 
-def connect_func(self):
-    return 0
-def info_route(self):
-    return 0
+    def set_device_strength(self, device, strength):
+        if device.device_type == "repeater":
+            print("Error: A strength cannot be defined for a repeater.")
+        elif not isinstance(strength, int) or strength < 0:
+            print("Error: Invalid command syntax.")
+        else:
+            device.strength = strength
+            print(f"Successfully defined strength.")
 
-def main():
-    a=input()
-    try:
-        # just=list(map(str,a.split()))
-        # if(len(just)==3):
-        #     in1=just[0]
-        #     in2=just[1]
-        #     in3=just[2]
-        # elif(len(just)>1):
-        #     in1=just[0]
-        #     if in1=="SET_DEVICE_STRENGTH":
-        #         if(len(just)==2):
-        #             in3=5
-        #     else:
-        #         print("Error: Invalid command syntax.")
-        # else:
-        #     print("Error: Invalid command syntax.")
-        in1, in2, in3 = list(map(str, a.split()))
-    except:
-        if in1=="SET_DEVICE_STRENGTH":
-            if not(in2):
-                print("Error: Invalid command syntax.")
+    def get_route(self, src_device, dest_device):
+        if src_device.device_type == "repeater" or dest_device.device_type == "repeater":
+            print(f"Error: Route cannot be calculated with a repeater.")
+            return
+        if dest_device not in src_device.connections:
+            queue = [(src_device, [src_device.name])]
+            visited = set()
+            while queue:
+                node, path = queue.pop(0)
+                if node in visited:
+                    continue
+                visited.add(node)
+                for connection in node.connections:
+                    if connection == dest_device:
+                        print(" -> ".join(path + [dest_device.name]))
+                        return
+                    queue.append((connection, path + [connection.name]))
+            print(f"Error: Route not found!")
+        else:
+            print(f"{src_device.name} -> {dest_device.name}")
 
-            elif in3:
-                in3=in3
-            else:
-                in3=5
+network=Network()
+while True:
+    command = input("> ").strip().split()
+    if not command:
+        print("Error: Invalid command syntax.")
+        continue
+    if command[0].upper() == "ADD":
+        if len(command) != 3:
+            print("Error: Invalid command syntax.")
+        elif command[1].upper() == "COMPUTER":
+            network.add_device(Device(command[2], "computer"))
+        elif command[1].upper() == "REPEATER":
+            network.add_device(Device(command[2], "repeater"))
         else:
             print("Error: Invalid command syntax.")
-        main()
 
-
-    if(in1 == "ADD"):
-        print(add_func(in2,in3))
-        main()
-    elif(in1=="CONNECT"):
-        print(connect_func())
-        main()
-    elif(in1=="INFO_ROUTE"):
-        print(info_route())
-        main()
-    elif(in1=="SET_DEVICE_STRENGTH"):
-        print(set_device_strength(in2,in3))
-        main()
-
-main()
+    elif command[0].upper() == "CONNECT":
+        if len(command) != 3:
+            print("Error: Invalid command syntax.")
+        else:
+            device1 = network.devices.get(command[1])
+            device2 = network.devices.get(command[2])
+            if device1 is None or device2 is None:
+                print("Error: Node not found.")
+            else:
+                network.connect_devices(device1, device2)
+    elif command[0].upper() == "SET_DEVICE_STRENGTH":
+        if len(command) != 3:
+            print("Error: Invalid command syntax.")
+        else:
+            device = network.devices.get(command[1])
+            if device is None:
+                print(f"Error: {command[1]} not found.")
+            else:
+                try:
+                    network.set_device_strength(device, int(command[2]))
+                except:
+                    print("Error: Invalid command syntax.")
+    elif command[0].upper() == "INFO_ROUTE":
+        if len(command) != 3:
+            print("Error: Invalid command syntax.")
+        else:
+            src_device = network.devices.get(command[1])
+            dest_device = network.devices.get(command[2])
+            if src_device is None:
+                print("Error: Node not found.")
+            elif dest_device is None:
+                print("Error: Node not found.")
+            else:
+                network.get_route(src_device, dest_device)
+    elif command[0].upper() == "QUIT":
+        break
+    else:
+        print("Error: Invalid command syntax.")
